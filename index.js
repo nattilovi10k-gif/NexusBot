@@ -1,10 +1,39 @@
-const http = require("http");
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason
+} = require("@whiskeysockets/baileys");
 
-const PORT = process.env.PORT || 3000;
+const P = require("pino");
 
-http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("NexusBot v1.0 is running!");
-}).listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState("session");
+
+  const sock = makeWASocket({
+    auth: state,
+    logger: P({ level: "silent" })
+  });
+
+  sock.ev.on("creds.update", saveCreds);
+
+  sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
+    if (qr) {
+      console.log("Scan the QR code with WhatsApp.");
+    }
+
+    if (connection === "close") {
+      const shouldReconnect =
+        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+
+      if (shouldReconnect) {
+        startBot();
+      }
+    }
+
+    if (connection === "open") {
+      console.log("✅ NexusBot is now online!");
+    }
+  });
+}
+
+startBot();
