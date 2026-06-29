@@ -1,3 +1,12 @@
+const http = require("http");
+
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+  res.end("NexusBot is running!");
+}).listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 const {
   default: makeWASocket,
   useMultiFileAuthState,
